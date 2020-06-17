@@ -10,6 +10,9 @@ POINT_COLOR = (0, 255, 0)
 CONNECTION_COLOR = (255, 0, 0)
 THICKNESS = 2
 
+DETECTOR_RADIUS = 100
+DETECTOR_POSITION = (100, 150) 
+
 cv2.namedWindow(WINDOW)
 capture = cv2.VideoCapture(0)
 
@@ -47,17 +50,30 @@ detector = HandTracker(
     box_enlarge=1.3
 )
 
+frameSkip = False
 while hasFrame:
+    if frameSkip:
+        frameSkip = False
+        capture.read()
+        continue
+    frameSkip = True
     image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     points, _ = detector(image)
+    detected = False
     if points is not None:
         for point in points:
             x, y = point
             cv2.circle(frame, (int(x), int(y)), THICKNESS * 2, POINT_COLOR, THICKNESS)
+            if ((DETECTOR_POSITION[0] - x)*(DETECTOR_POSITION[0] - x) + (DETECTOR_POSITION[1] - y)*(DETECTOR_POSITION[1] - y)) < DETECTOR_RADIUS*DETECTOR_RADIUS:
+                detected = True
         for connection in connections:
             x0, y0 = points[connection[0]]
             x1, y1 = points[connection[1]]
             cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)), CONNECTION_COLOR, THICKNESS)
+    detectorColor = (255, 0, 0)
+    if detected:
+        detectorColor = (0, 255, 0)
+    cv2.circle(frame, DETECTOR_POSITION, DETECTOR_RADIUS, detectorColor, THICKNESS)
     cv2.imshow(WINDOW, frame)
     hasFrame, frame = capture.read()
     key = cv2.waitKey(1)
