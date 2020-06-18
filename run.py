@@ -1,6 +1,8 @@
 import cv2
+import datetime
 from src.hand_tracker import HandTracker
 
+print (datetime.datetime.now().timestamp())
 WINDOW = "Hand Tracking"
 PALM_MODEL_PATH = "models/palm_detection_without_custom_op.tflite"
 LANDMARK_MODEL_PATH = "models/hand_landmark.tflite"
@@ -10,8 +12,11 @@ POINT_COLOR = (0, 255, 0)
 CONNECTION_COLOR = (255, 0, 0)
 THICKNESS = 2
 
-DETECTOR_RADIUS = 100
-DETECTOR_POSITION = (100, 150) 
+DETECTOR_RADIUS = 200
+DETECTOR_POSITION = (200, 300) 
+DETECTOR_WAITTIME = 2
+def runBot():
+    pass
 
 cv2.namedWindow(WINDOW)
 capture = cv2.VideoCapture(0)
@@ -51,6 +56,7 @@ detector = HandTracker(
 )
 
 frameSkip = False
+prevFrameDetected = False
 while hasFrame:
     if frameSkip:
         frameSkip = False
@@ -65,20 +71,31 @@ while hasFrame:
             x, y = point
             cv2.circle(frame, (int(x), int(y)), THICKNESS * 2, POINT_COLOR, THICKNESS)
             if ((DETECTOR_POSITION[0] - x)*(DETECTOR_POSITION[0] - x) + (DETECTOR_POSITION[1] - y)*(DETECTOR_POSITION[1] - y)) < DETECTOR_RADIUS*DETECTOR_RADIUS:
+                if prevFrameDetected == False:
+                    startTime = datetime.datetime.now().timestamp()
                 detected = True
+
         for connection in connections:
             x0, y0 = points[connection[0]]
             x1, y1 = points[connection[1]]
             cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)), CONNECTION_COLOR, THICKNESS)
+
+    prevFrameDetected = detected
     detectorColor = (255, 0, 0)
     if detected:
         detectorColor = (0, 255, 0)
+        currentTime = datetime.datetime.now().timestamp()
+        if currentTime - startTime >= DETECTOR_WAITTIME:
+            detectorColor = (255, 255, 0)
+            runBot()
+
     cv2.circle(frame, DETECTOR_POSITION, DETECTOR_RADIUS, detectorColor, THICKNESS)
     cv2.imshow(WINDOW, frame)
     hasFrame, frame = capture.read()
     key = cv2.waitKey(1)
     if key == 27:
         break
+
 
 capture.release()
 cv2.destroyAllWindows()
